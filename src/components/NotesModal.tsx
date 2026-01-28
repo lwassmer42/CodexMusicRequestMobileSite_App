@@ -21,12 +21,12 @@ export function NotesModal({
   isOpen,
   value,
   onSave,
-  onDismiss,
+  onCancel,
 }: {
   isOpen: boolean;
   value?: string;
   onSave: (nextNotes: string | undefined) => void;
-  onDismiss: () => void;
+  onCancel: () => void;
 }) {
   const [notes, setNotes] = useState(value ?? '');
 
@@ -34,18 +34,17 @@ export function NotesModal({
     if (isOpen) setNotes(value ?? '');
   }, [isOpen, value]);
 
+  const handleSave = () => {
+    onSave(normalizeOptionalText(notes));
+  };
+
   return (
-    <IonModal
-      isOpen={isOpen}
-      onWillDismiss={() => onSave(normalizeOptionalText(notes))}
-      onDidDismiss={onDismiss}
-      className="notesModal"
-    >
+    <IonModal isOpen={isOpen} onDidDismiss={onCancel} className="notesModal">
       <IonHeader className="appHeader notesModalHeader">
         <IonToolbar className="appToolbar notesModalToolbar">
           <IonTitle>Notes</IonTitle>
           <IonButtons slot="end">
-            <IonButton fill="clear" className="notesCloseButton" onClick={onDismiss} aria-label="Close notes">
+            <IonButton fill="clear" className="notesCloseButton" onClick={onCancel} aria-label="Close notes">
               <IonIcon slot="icon-only" icon={closeOutline} />
             </IonButton>
           </IonButtons>
@@ -60,8 +59,15 @@ export function NotesModal({
             placeholder="Add a quick note…"
           />
         </div>
+        <div className="notesModalActions">
+          <IonButton color="medium" fill="solid" shape="round" onClick={onCancel}>
+            Cancel
+          </IonButton>
+          <IonButton color="primary" fill="solid" shape="round" onClick={handleSave}>
+            Save
+          </IonButton>
+        </div>
       </IonContent>
     </IonModal>
   );
 }
-

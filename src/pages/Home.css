@@ -141,6 +141,10 @@ body.dark .appToolbar {
   text-align: center;
 }
 
+.newRequestCard {
+  padding: 10px 12px;
+}
+
 .emptyStateTitle {
   margin: 0 0 4px;
   font-weight: 750;
@@ -256,10 +260,32 @@ body.dark .appToolbar {
   border-radius: 16px;
   padding: 10px 12px;
   box-shadow: var(--app-shadow);
+  width: min(560px, 100%);
 }
 
 .notesCloseButton {
   --border-radius: 12px;
+}
+
+.notesModalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+@media (max-width: 540px) {
+  .notesModalContent {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100%;
+  }
+
+  .notesModalActions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 @media (min-width: 700px) {

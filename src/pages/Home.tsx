@@ -321,14 +321,16 @@ const Home: React.FC = () => {
     });
   };
 
-  const renderEmptyState = (label: string) => (
+  const renderEmptyState = (label: string, withButton = true, bodyText?: string) => (
     <div className="emptyState">
       <p className="emptyStateTitle">No {label} requests</p>
-      <p className="emptyStateBody">Try a different filter, or add a new request.</p>
-      <IonButton color="primary" shape="round" onClick={openNewRequest}>
-        <IonIcon slot="start" icon={addOutline} />
-        New Request
-      </IonButton>
+      <p className="emptyStateBody">{bodyText ?? 'Try a different filter, or add a new request.'}</p>
+      {withButton ? (
+        <IonButton color="primary" shape="round" onClick={openNewRequest}>
+          <IonIcon slot="start" icon={addOutline} />
+          New Request
+        </IonButton>
+      ) : null}
     </div>
   );
 
@@ -467,6 +469,14 @@ const Home: React.FC = () => {
                     {pending.length === 0
                       ? renderEmptyState('pending')
                       : pending.map((r) => <RequestCard key={r.id} request={r} handlers={handlers} />)}
+                    {pending.length > 0 ? (
+                      <div className="emptyState newRequestCard">
+                        <IonButton color="primary" shape="round" onClick={openNewRequest}>
+                          <IonIcon slot="start" icon={addOutline} />
+                          New Request
+                        </IonButton>
+                      </div>
+                    ) : null}
                   </div>
                 </IonCol>
 
@@ -476,7 +486,7 @@ const Home: React.FC = () => {
                   </h2>
                   <div className="listStack">
                     {delivered.length === 0
-                      ? renderEmptyState('delivered')
+                      ? renderEmptyState('delivered', false, 'Try a different filter, or deliver a pending request.')
                       : delivered.map((r) => <RequestCard key={r.id} request={r} handlers={handlers} />)}
                   </div>
                 </IonCol>
@@ -510,8 +520,9 @@ const Home: React.FC = () => {
           setRequests((prev) =>
             prev.map((r) => (r.id === notesId ? { ...r, notes: nextNotes, updatedAt: nowIsoString() } : r)),
           );
+          setIsNotesOpen(false);
         }}
-        onDismiss={() => setIsNotesOpen(false)}
+        onCancel={() => setIsNotesOpen(false)}
       />
 
       <IonActionSheet
