@@ -1,0 +1,7 @@
+{
+  "name": "CodexMusicRequestMobileSite_App",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

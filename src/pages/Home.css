@@ -1,0 +1,253 @@
+/* Global page background */
+.appPage ion-content {
+  --background: var(--app-bg-gradient);
+}
+
+.appHeader {
+  box-shadow: none;
+}
+
+.appToolbar {
+  --border-width: 0;
+  --background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(14px);
+}
+
+body.dark .appToolbar {
+  --background: rgba(11, 16, 32, 0.5);
+}
+
+.toolbarTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 10px;
+}
+
+.toolbarIcon {
+  font-size: 22px;
+  color: var(--ion-color-primary);
+}
+
+.toolbarText {
+  padding: 0;
+}
+
+.toolbarButtons {
+  gap: 8px;
+}
+
+.themeToggleButton {
+  --border-radius: 14px;
+}
+
+.overflowButton {
+  --border-radius: 14px;
+}
+
+.actionButton {
+  --border-radius: 14px;
+  text-transform: none;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.actionButtonLabel {
+  display: inline;
+}
+
+.appContent .contentWrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px 14px 30px;
+}
+
+.hiddenFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.summaryCard {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow);
+  border-radius: 18px;
+  padding: 14px 14px;
+  margin-bottom: 14px;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.summaryItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+}
+
+.summaryItem ion-icon {
+  font-size: 20px;
+  color: var(--ion-color-primary);
+}
+
+.controlsRow {
+  margin: 10px 0 14px;
+}
+
+.filterItem {
+  --background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+}
+
+.mobileToggleRow {
+  margin: 8px 0 14px;
+}
+
+.listsGrid {
+  padding: 0;
+}
+
+.listTitle {
+  margin: 8px 4px 10px;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.listStack {
+  display: grid;
+  gap: 12px;
+}
+
+.emptyState {
+  background: var(--app-surface);
+  border: 1px dashed var(--app-border);
+  border-radius: 18px;
+  padding: 16px 14px;
+  text-align: center;
+}
+
+.emptyStateTitle {
+  margin: 0 0 4px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.emptyStateBody {
+  margin: 0 0 12px;
+  opacity: 0.75;
+}
+
+.muted {
+  opacity: 0.7;
+}
+
+/* Request cards */
+.requestCard {
+  border-radius: 18px;
+  box-shadow: var(--app-shadow);
+  border: 1px solid var(--app-border);
+  overflow: hidden;
+}
+
+.requestCard.isPending {
+  border-left: 5px solid var(--ion-color-primary);
+}
+
+.requestCard.isDelivered {
+  border-left: 5px solid var(--ion-color-success);
+}
+
+.requestCardHeader {
+  padding-bottom: 8px;
+}
+
+.requestCardHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.requestCardMeta {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.requestCardHeaderActions {
+  display: flex;
+  gap: 2px;
+}
+
+.requestCardBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.chipLink a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.requestCardCost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  margin: 2px 0 10px;
+}
+
+.requestCardButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.notesButton {
+  --padding-start: 0;
+  --padding-end: 0;
+  text-transform: none;
+}
+
+/* Editor modal */
+.requestEditorModal ion-content {
+  --background: var(--app-bg-gradient);
+}
+
+.requestEditorActions {
+  padding: 10px 16px 22px;
+}
+
+.required {
+  color: var(--ion-color-danger);
+}
+
+@media (min-width: 700px) {
+  .summaryRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  .actionButtonLabel {
+    display: none;
+  }
+}

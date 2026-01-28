@@ -1,0 +1,94 @@
+/*
+  For information on how to create your own theme, please refer to:
+  http://ionicframework.com/docs/theming/
+*/
+
+:root,
+.light {
+  color-scheme: light;
+
+  /* Brand palette (music-themed, modern) */
+  --ion-color-primary: #7c3aed;
+  --ion-color-primary-rgb: 124, 58, 237;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #6d33d1;
+  --ion-color-primary-tint: #8950ed;
+
+  --ion-color-secondary: #06b6d4;
+  --ion-color-secondary-rgb: 6, 182, 212;
+  --ion-color-secondary-contrast: #001018;
+  --ion-color-secondary-contrast-rgb: 0, 16, 24;
+  --ion-color-secondary-shade: #05a0bb;
+  --ion-color-secondary-tint: #1fc0da;
+
+  --ion-color-tertiary: #f97316;
+  --ion-color-tertiary-rgb: 249, 115, 22;
+  --ion-color-tertiary-contrast: #1b0b00;
+  --ion-color-tertiary-contrast-rgb: 27, 11, 0;
+  --ion-color-tertiary-shade: #db6513;
+  --ion-color-tertiary-tint: #fa812d;
+
+  --ion-color-success: #22c55e;
+  --ion-color-success-rgb: 34, 197, 94;
+  --ion-color-success-contrast: #05130b;
+  --ion-color-success-contrast-rgb: 5, 19, 11;
+  --ion-color-success-shade: #1eae53;
+  --ion-color-success-tint: #38cb6e;
+
+  --ion-color-warning: #f59e0b;
+  --ion-color-warning-rgb: 245, 158, 11;
+  --ion-color-warning-contrast: #1a1000;
+  --ion-color-warning-contrast-rgb: 26, 16, 0;
+  --ion-color-warning-shade: #d8890a;
+  --ion-color-warning-tint: #f6a823;
+
+  --ion-color-danger: #ef4444;
+  --ion-color-danger-rgb: 239, 68, 68;
+  --ion-color-danger-contrast: #1a0000;
+  --ion-color-danger-contrast-rgb: 26, 0, 0;
+  --ion-color-danger-shade: #d23c3c;
+  --ion-color-danger-tint: #f15757;
+
+  /* Surface + typography */
+  --ion-background-color: #f7f7ff;
+  --ion-background-color-rgb: 247, 247, 255;
+  --ion-text-color: #0f172a;
+  --ion-text-color-rgb: 15, 23, 42;
+
+  --ion-card-background: rgba(255, 255, 255, 0.9);
+  --ion-item-background: transparent;
+
+  /* App-specific tokens */
+  --app-surface: rgba(255, 255, 255, 0.9);
+  --app-surface-2: rgba(255, 255, 255, 0.75);
+  --app-border: rgba(15, 23, 42, 0.12);
+  --app-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+
+  --app-bg-gradient: radial-gradient(1200px 600px at 0% 0%, rgba(124, 58, 237, 0.18), transparent 60%),
+    radial-gradient(900px 450px at 100% 0%, rgba(6, 182, 212, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 50% 120%, rgba(249, 115, 22, 0.12), transparent 60%),
+    linear-gradient(180deg, #f7f7ff, #f2f4ff);
+}
+
+body.dark {
+  color-scheme: dark;
+
+  --ion-background-color: #0b1020;
+  --ion-background-color-rgb: 11, 16, 32;
+  --ion-text-color: #e5e7eb;
+  --ion-text-color-rgb: 229, 231, 235;
+
+  --ion-card-background: rgba(17, 24, 39, 0.72);
+  --ion-item-background: transparent;
+
+  --app-surface: rgba(17, 24, 39, 0.72);
+  --app-surface-2: rgba(17, 24, 39, 0.5);
+  --app-border: rgba(229, 231, 235, 0.14);
+  --app-shadow: 0 14px 38px rgba(0, 0, 0, 0.45);
+
+  --app-bg-gradient: radial-gradient(1100px 550px at 0% 0%, rgba(124, 58, 237, 0.25), transparent 60%),
+    radial-gradient(850px 420px at 100% 0%, rgba(6, 182, 212, 0.22), transparent 58%),
+    radial-gradient(850px 520px at 50% 120%, rgba(249, 115, 22, 0.18), transparent 62%),
+    linear-gradient(180deg, #0b1020, #0a0f1d);
+}
