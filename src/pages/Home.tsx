@@ -57,9 +57,12 @@ function nowIsoString() {
 function formatMonthLabel(monthKey: string) {
   const [y, m] = monthKey.split('-');
   if (!y || !m) return monthKey;
-  const dt = new Date(`${y}-${m}-01T00:00:00Z`);
+  const yearNum = Number(y);
+  const monthNum = Number(m);
+  if (!Number.isFinite(yearNum) || !Number.isFinite(monthNum)) return monthKey;
+  const dt = new Date(Date.UTC(yearNum, monthNum - 1, 1));
   if (Number.isNaN(dt.getTime())) return monthKey;
-  const month = new Intl.DateTimeFormat(undefined, { month: 'short' }).format(dt);
+  const month = new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC' }).format(dt);
   return `${month} ${y}`;
 }
 

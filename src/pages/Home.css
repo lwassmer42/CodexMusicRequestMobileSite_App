@@ -250,4 +250,80 @@ body.dark .appToolbar {
   .actionButtonLabel {
     display: none;
   }
+
+  .requestCard {
+    border-radius: 14px;
+  }
+
+  .requestCardHeader {
+    padding: 10px 12px 6px;
+  }
+
+  .requestCardHeader ion-card-title {
+    font-size: 16px;
+  }
+
+  .requestCardHeader ion-card-subtitle {
+    font-size: 12px;
+  }
+
+  .requestCardMeta {
+    font-size: 11px;
+  }
+
+  .requestCardContent {
+    padding: 8px 12px 12px;
+  }
+
+  .requestCardBadges {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .requestCardBadges ion-chip {
+    height: 24px;
+    font-size: 11px;
+    padding: 0 8px;
+  }
+
+  .requestCardCost {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .requestCardButtons {
+    gap: 8px;
+  }
+
+  .requestCardButtons ion-button {
+    height: 28px;
+    --padding-start: 10px;
+    --padding-end: 10px;
+    font-size: 12px;
+  }
+
+  .notesButton {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .requestCardHeader {
+    padding: 8px 10px 4px;
+  }
+
+  .requestCardContent {
+    padding: 6px 10px 10px;
+  }
+
+  .requestCardHeader ion-card-title {
+    font-size: 15px;
+  }
+
+  .requestCardButtons ion-button {
+    height: 26px;
+    --padding-start: 8px;
+    --padding-end: 8px;
+    font-size: 11px;
+  }
 }
