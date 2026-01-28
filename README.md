@@ -2,12 +2,7 @@
 
 Mobile-first music request tracker with local storage and Excel/JSON import/export.
 
-## Dev
 
-```powershell
-cd "C:\Users\Lucas\VibeCodingProjects\CodexMusicRequestMobileSite_App"
-npm.cmd run dev
-```
 
 ## GitHub Pages
 
