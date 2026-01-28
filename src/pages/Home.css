@@ -288,11 +288,13 @@ body.dark .appToolbar {
 
   .requestCardCost {
     font-size: 12px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
   .requestCardButtons {
-    gap: 8px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    align-items: center;
   }
 
   .requestCardButtons ion-button {
@@ -304,6 +306,8 @@ body.dark .appToolbar {
 
   .notesButton {
     font-size: 12px;
+    margin-left: auto;
+    white-space: nowrap;
   }
 }
 
@@ -326,4 +330,11 @@ body.dark .appToolbar {
     --padding-end: 8px;
     font-size: 11px;
   }
+}
+
+body.dark .requestCardHeader ion-card-subtitle,
+body.dark .requestCardMeta,
+body.dark .requestCardCost,
+body.dark .requestCardContent ion-text {
+  color: var(--ion-text-color);
 }
