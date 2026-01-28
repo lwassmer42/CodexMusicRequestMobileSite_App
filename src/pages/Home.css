@@ -130,7 +130,7 @@ body.dark .appToolbar {
 
 .listStack {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .emptyState {
@@ -162,6 +162,7 @@ body.dark .appToolbar {
   box-shadow: var(--app-shadow);
   border: 1px solid var(--app-border);
   overflow: hidden;
+  margin: 0;
 }
 
 .requestCard.isPending {
@@ -240,6 +241,27 @@ body.dark .appToolbar {
   color: var(--ion-color-danger);
 }
 
+/* Notes modal */
+.notesModal ion-content {
+  --background: var(--app-bg-gradient);
+}
+
+.notesModalContent {
+  padding: 14px 12px 18px;
+}
+
+.notesBox {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: var(--app-shadow);
+}
+
+.notesCloseButton {
+  --border-radius: 12px;
+}
+
 @media (min-width: 700px) {
   .summaryRow {
     grid-template-columns: 1fr 1fr;
@@ -257,6 +279,16 @@ body.dark .appToolbar {
 
   .requestCardHeader {
     padding: 10px 12px 6px;
+  }
+
+  .requestCardHeaderRow {
+    position: relative;
+  }
+
+  .requestCardHeaderActions {
+    position: absolute;
+    right: 6px;
+    top: 6px;
   }
 
   .requestCardHeader ion-card-title {
@@ -308,6 +340,10 @@ body.dark .appToolbar {
     font-size: 12px;
     margin-left: auto;
     white-space: nowrap;
+  }
+
+  .listStack {
+    gap: 4px;
   }
 }
 

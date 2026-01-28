@@ -32,6 +32,7 @@ import {
 import { type ChangeEventHandler, useEffect, useMemo, useRef, useState } from 'react';
 import { RequestEditorModal, type RequestEditorDraft } from '../components/RequestEditorModal';
 import { RequestCard, type RequestCardActionHandlers } from '../components/RequestCard';
+import { NotesModal } from '../components/NotesModal';
 import { ThemeToggleButton } from '../components/ThemeToggleButton';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useThemeMode } from '../hooks/useThemeMode';
@@ -88,6 +89,8 @@ const Home: React.FC = () => {
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [notesId, setNotesId] = useState<string | null>(null);
 
   const [requests, setRequests] = useState<MusicRequest[]>(() => loadRequests());
 
@@ -158,6 +161,11 @@ const Home: React.FC = () => {
     [requests, editingId],
   );
 
+  const notesRequest = useMemo(
+    () => (notesId ? requests.find((r) => r.id === notesId) : undefined),
+    [requests, notesId],
+  );
+
   const handlers = useMemo<RequestCardActionHandlers>(
     () => ({
       onToggleDelivered: (id) => {
@@ -217,8 +225,8 @@ const Home: React.FC = () => {
         });
       },
       onEditNotes: (id) => {
-        setEditingId(id);
-        setIsEditorOpen(true);
+        setNotesId(id);
+        setIsNotesOpen(true);
       },
     }),
     [],
@@ -492,6 +500,18 @@ const Home: React.FC = () => {
         initialDraft={editingRequest}
         onCancel={() => setIsEditorOpen(false)}
         onSave={onSaveDraft}
+      />
+
+      <NotesModal
+        isOpen={isNotesOpen}
+        value={notesRequest?.notes}
+        onSave={(nextNotes) => {
+          if (!notesId) return;
+          setRequests((prev) =>
+            prev.map((r) => (r.id === notesId ? { ...r, notes: nextNotes, updatedAt: nowIsoString() } : r)),
+          );
+        }}
+        onDismiss={() => setIsNotesOpen(false)}
       />
 
       <IonActionSheet
