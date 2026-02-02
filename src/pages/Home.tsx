@@ -24,6 +24,7 @@ import {
 } from '@ionic/react';
 import {
   addOutline,
+  archiveOutline,
   cloudUploadOutline,
   documentTextOutline,
   ellipsisVerticalOutline,
@@ -44,7 +45,7 @@ import {
   importRequestsFromXlsx,
 } from '../lib/importExport';
 import { loadRequests, saveRequests } from '../lib/requestsStorage';
-import type { MusicRequest } from '../models/Request';
+import type { ISODate, MusicRequest } from '../models/Request';
 import './Home.css';
 
 function toMonthKey(isoDate: string) {
@@ -53,6 +54,10 @@ function toMonthKey(isoDate: string) {
 
 function nowIsoString() {
   return new Date().toISOString();
+}
+
+function todayIsoDate(): ISODate {
+  return new Date().toISOString().slice(0, 10) as ISODate;
 }
 
 function formatMonthLabel(monthKey: string) {
@@ -81,11 +86,12 @@ const Home: React.FC = () => {
   const { isDark, toggle: toggleTheme } = useThemeMode();
   const isDesktop = useMediaQuery('(min-width: 960px)');
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIsoDate();
   const defaultFilter = `month:${toMonthKey(today)}`;
 
   const [filterValue, setFilterValue] = useState<string>(defaultFilter);
-  const [activeView, setActiveView] = useState<'pending' | 'delivered'>('pending');
+  const [showArchived, setShowArchived] = useState(false);
+  const [activeView, setActiveView] = useState<'pending' | 'delivered' | 'archived'>('pending');
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -93,6 +99,24 @@ const Home: React.FC = () => {
   const [notesId, setNotesId] = useState<string | null>(null);
 
   const [requests, setRequests] = useState<MusicRequest[]>(() => loadRequests());
+
+  useEffect(() => {
+    setRequests((prev) => {
+      const now = nowIsoString();
+      const migratedArchivedDate = todayIsoDate();
+
+      let changed = false;
+      const next = prev.map((r) => {
+        if (r.delivered && r.reimbursed && !r.archivedDate) {
+          changed = true;
+          return { ...r, archivedDate: migratedArchivedDate, updatedAt: now };
+        }
+        return r;
+      });
+
+      return changed ? next : prev;
+    });
+  }, []);
 
   useEffect(() => {
     saveRequests(requests);
@@ -124,11 +148,36 @@ const Home: React.FC = () => {
   }, [requests, filterValue]);
 
   const pending = useMemo(
-    () => filteredRequests.filter((r) => !r.delivered).sort((a, b) => a.dateRequested.localeCompare(b.dateRequested)),
+    () =>
+      filteredRequests.filter((r) => !r.delivered).sort((a, b) => {
+        const date = b.dateRequested.localeCompare(a.dateRequested);
+        if (date !== 0) return date;
+        return a.studentName.localeCompare(b.studentName);
+      }),
     [filteredRequests],
   );
   const delivered = useMemo(
-    () => filteredRequests.filter((r) => r.delivered).sort((a, b) => a.dateRequested.localeCompare(b.dateRequested)),
+    () =>
+      filteredRequests
+        .filter((r) => r.delivered && !r.reimbursed)
+        .sort((a, b) => {
+          const date = b.dateRequested.localeCompare(a.dateRequested);
+          if (date !== 0) return date;
+          return a.studentName.localeCompare(b.studentName);
+        }),
+    [filteredRequests],
+  );
+  const archived = useMemo(
+    () =>
+      filteredRequests
+        .filter((r) => r.delivered && r.reimbursed)
+        .sort((a, b) => {
+          const archivedDate = (b.archivedDate ?? b.dateRequested).localeCompare(a.archivedDate ?? a.dateRequested);
+          if (archivedDate !== 0) return archivedDate;
+          const requestedDate = b.dateRequested.localeCompare(a.dateRequested);
+          if (requestedDate !== 0) return requestedDate;
+          return a.studentName.localeCompare(b.studentName);
+        }),
     [filteredRequests],
   );
 
@@ -174,13 +223,22 @@ const Home: React.FC = () => {
           if (!target) return prev;
 
           const nextDelivered = !target.delivered;
+          const nextIsArchived = nextDelivered && target.reimbursed;
+          const leavingArchive = target.delivered && target.reimbursed && !nextIsArchived;
+          const archivedDate = nextIsArchived ? todayIsoDate() : leavingArchive ? undefined : target.archivedDate;
           showUndoToast(nextDelivered ? 'Marked delivered' : 'Marked pending', () =>
             setRequests((cur) =>
-              cur.map((r) => (r.id === id ? { ...r, delivered: target.delivered, updatedAt: nowIsoString() } : r)),
+              cur.map((r) =>
+                r.id === id
+                  ? { ...r, delivered: target.delivered, archivedDate: target.archivedDate, updatedAt: nowIsoString() }
+                  : r,
+              ),
             ),
           );
 
-          return prev.map((r) => (r.id === id ? { ...r, delivered: nextDelivered, updatedAt: nowIsoString() } : r));
+          return prev.map((r) =>
+            r.id === id ? { ...r, delivered: nextDelivered, archivedDate, updatedAt: nowIsoString() } : r,
+          );
         });
       },
       onToggleReimbursed: (id) => {
@@ -189,16 +247,21 @@ const Home: React.FC = () => {
           if (!target) return prev;
 
           const nextReimbursed = !target.reimbursed;
+          const nextIsArchived = target.delivered && nextReimbursed;
+          const leavingArchive = target.delivered && target.reimbursed && !nextIsArchived;
+          const archivedDate = nextIsArchived ? todayIsoDate() : leavingArchive ? undefined : target.archivedDate;
           showUndoToast(nextReimbursed ? 'Marked reimbursed' : 'Marked unreimbursed', () =>
             setRequests((cur) =>
               cur.map((r) =>
-                r.id === id ? { ...r, reimbursed: target.reimbursed, updatedAt: nowIsoString() } : r,
+                r.id === id
+                  ? { ...r, reimbursed: target.reimbursed, archivedDate: target.archivedDate, updatedAt: nowIsoString() }
+                  : r,
               ),
             ),
           );
 
           return prev.map((r) =>
-            r.id === id ? { ...r, reimbursed: nextReimbursed, updatedAt: nowIsoString() } : r,
+            r.id === id ? { ...r, reimbursed: nextReimbursed, archivedDate, updatedAt: nowIsoString() } : r,
           );
         });
       },
@@ -239,9 +302,17 @@ const Home: React.FC = () => {
 
   const exportSortedRequests = useMemo(() => {
     return [...requests].sort((a, b) => {
-      if (a.delivered !== b.delivered) return a.delivered ? 1 : -1;
-      const date = a.dateRequested.localeCompare(b.dateRequested);
-      if (date !== 0) return date;
+      const aRank = a.delivered && a.reimbursed ? 2 : a.delivered ? 1 : 0;
+      const bRank = b.delivered && b.reimbursed ? 2 : b.delivered ? 1 : 0;
+      if (aRank !== bRank) return aRank - bRank;
+
+      if (aRank === 2) {
+        const archivedDate = (b.archivedDate ?? b.dateRequested).localeCompare(a.archivedDate ?? a.dateRequested);
+        if (archivedDate !== 0) return archivedDate;
+      }
+
+      const requestedDate = b.dateRequested.localeCompare(a.dateRequested);
+      if (requestedDate !== 0) return requestedDate;
       return a.studentName.localeCompare(b.studentName);
     });
   }, [requests]);
@@ -435,12 +506,30 @@ const Home: React.FC = () => {
             </IonItem>
           </div>
 
+          <div className="archivedToggleRow">
+            <IonButton
+              fill="outline"
+              size="small"
+              onClick={() => {
+                setShowArchived((prev) => {
+                  const next = !prev;
+                  if (!prev && next) setActiveView('archived');
+                  if (prev && !next) setActiveView((cur) => (cur === 'archived' ? 'pending' : cur));
+                  return next;
+                });
+              }}
+            >
+              <IonIcon slot="start" icon={archiveOutline} />
+              {showArchived ? 'Hide Archived' : 'Show Archived'} <IonBadge color="medium">{archived.length}</IonBadge>
+            </IonButton>
+          </div>
+
           {!isDesktop ? (
             <div className="mobileToggleRow">
               <IonSegment
                 value={activeView}
                 onIonChange={(e) => {
-                  const next = e.detail.value as 'pending' | 'delivered' | undefined;
+                  const next = e.detail.value as 'pending' | 'delivered' | 'archived' | undefined;
                   if (next) setActiveView(next);
                 }}
               >
@@ -454,6 +543,13 @@ const Home: React.FC = () => {
                     Delivered <IonBadge color="success">{delivered.length}</IonBadge>
                   </IonLabel>
                 </IonSegmentButton>
+                {showArchived ? (
+                  <IonSegmentButton value="archived">
+                    <IonLabel>
+                      Archived <IonBadge color="medium">{archived.length}</IonBadge>
+                    </IonLabel>
+                  </IonSegmentButton>
+                ) : null}
               </IonSegment>
             </div>
           ) : null}
@@ -461,7 +557,7 @@ const Home: React.FC = () => {
           {isDesktop ? (
             <IonGrid className="listsGrid">
               <IonRow>
-                <IonCol size="12" sizeLg="6">
+                <IonCol size="12" sizeLg={showArchived ? '4' : '6'}>
                   <h2 className="listTitle">
                     Pending <span className="muted">({pending.length})</span>
                   </h2>
@@ -480,7 +576,7 @@ const Home: React.FC = () => {
                   </div>
                 </IonCol>
 
-                <IonCol size="12" sizeLg="6">
+                <IonCol size="12" sizeLg={showArchived ? '4' : '6'}>
                   <h2 className="listTitle">
                     Delivered <span className="muted">({delivered.length})</span>
                   </h2>
@@ -490,13 +586,30 @@ const Home: React.FC = () => {
                       : delivered.map((r) => <RequestCard key={r.id} request={r} handlers={handlers} />)}
                   </div>
                 </IonCol>
+
+                {showArchived ? (
+                  <IonCol size="12" sizeLg="4">
+                    <h2 className="listTitle">
+                      Archived <span className="muted">({archived.length})</span>
+                    </h2>
+                    <div className="listStack">
+                      {archived.length === 0
+                        ? renderEmptyState('archived', false, 'Archived requests (delivered + reimbursed) show up here.')
+                        : archived.map((r) => <RequestCard key={r.id} request={r} handlers={handlers} />)}
+                    </div>
+                  </IonCol>
+                ) : null}
               </IonRow>
             </IonGrid>
           ) : (
             <div className="listStack">
-              {(activeView === 'pending' ? pending : delivered).length === 0
-                ? renderEmptyState(activeView)
-                : (activeView === 'pending' ? pending : delivered).map((r) => (
+              {(activeView === 'pending' ? pending : activeView === 'delivered' ? delivered : archived).length === 0
+                ? renderEmptyState(
+                    activeView,
+                    activeView !== 'archived',
+                    activeView === 'archived' ? 'Archived requests (delivered + reimbursed) show up here.' : undefined,
+                  )
+                : (activeView === 'pending' ? pending : activeView === 'delivered' ? delivered : archived).map((r) => (
                     <RequestCard key={r.id} request={r} handlers={handlers} />
                   ))}
             </div>

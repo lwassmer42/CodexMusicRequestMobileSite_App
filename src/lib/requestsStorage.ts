@@ -1,4 +1,4 @@
-import type { MusicRequest } from '../models/Request';
+import type { ISODate, MusicRequest } from '../models/Request';
 
 const STORAGE_KEY = 'cmr_requests_v1';
 
@@ -26,6 +26,7 @@ function coerceRequest(raw: unknown): MusicRequest | undefined {
   const songTitle = safeString(raw.songTitle);
   const artist = safeString(raw.artist);
   const dateRequested = safeString(raw.dateRequested);
+  const archivedDate = safeString(raw.archivedDate);
   const delivered = safeBoolean(raw.delivered);
   const reimbursed = safeBoolean(raw.reimbursed);
   const createdAt = safeString(raw.createdAt);
@@ -50,8 +51,9 @@ function coerceRequest(raw: unknown): MusicRequest | undefined {
     studentName,
     songTitle,
     artist,
-    dateRequested: dateRequested as any,
-    dueDate: safeString(raw.dueDate) as any,
+    dateRequested: dateRequested as ISODate,
+    dueDate: safeString(raw.dueDate) as ISODate | undefined,
+    archivedDate: archivedDate as ISODate | undefined,
     scoreLink: safeString(raw.scoreLink),
     cost: safeNumber(raw.cost),
     delivered,
