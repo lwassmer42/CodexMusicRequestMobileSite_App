@@ -11,6 +11,7 @@ export interface MusicRequest {
 
   dateRequested: ISODate;
   dueDate?: ISODate;
+  archivedDate?: ISODate;
 
   scoreLink?: string;
   cost?: number;

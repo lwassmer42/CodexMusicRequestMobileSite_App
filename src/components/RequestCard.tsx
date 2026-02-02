@@ -49,12 +49,16 @@ export function RequestCard({
           <div className="requestCardTitles">
             <IonCardTitle>{request.studentName}</IonCardTitle>
             <IonCardSubtitle>
-              {request.songTitle} <span className="muted">•</span> {request.artist}
+              {request.songTitle} <span className="muted">{'\u2022'}</span> {request.artist}
             </IonCardSubtitle>
             <IonText color="medium" className="requestCardMeta">
               Requested: {request.dateRequested}
-              {request.dueDate ? <span className="muted"> • </span> : null}
+              {request.dueDate ? <span className="muted"> {'\u2022'} </span> : null}
               {request.dueDate ? <>Due: {request.dueDate}</> : null}
+              {request.delivered && request.reimbursed ? <span className="muted"> {'\u2022'} </span> : null}
+              {request.delivered && request.reimbursed ? (
+                <>Archived: {request.archivedDate ?? request.dateRequested}</>
+              ) : null}
             </IonText>
           </div>
 
@@ -143,4 +147,3 @@ export function RequestCard({
     </IonCard>
   );
 }
-

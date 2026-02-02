@@ -6,6 +6,7 @@ export const EXCEL_HEADERS = [
   'Song Title',
   'Artist',
   'Date Requested',
+  'Archived Date',
   'Score Link',
   'Cost',
   'Delivered',
@@ -121,6 +122,7 @@ export function exportRequestsToXlsx(requests: MusicRequest[]) {
     'Song Title': r.songTitle,
     Artist: r.artist,
     'Date Requested': r.dateRequested,
+    'Archived Date': r.archivedDate ?? '',
     'Score Link': r.scoreLink ?? '',
     Cost: r.cost ?? '',
     Delivered: formatYesNo(r.delivered),
@@ -134,6 +136,7 @@ export function exportRequestsToXlsx(requests: MusicRequest[]) {
     { wch: 22 },
     { wch: 26 },
     { wch: 22 },
+    { wch: 16 },
     { wch: 16 },
     { wch: 38 },
     { wch: 10 },
@@ -192,6 +195,7 @@ export function importRequestsFromXlsx(
     existingKeys.add(key);
 
     const dateRequested = toIsoDate(getHeaderValue(row, 'Date Requested')) ?? today;
+    const archivedDate = toIsoDate(getHeaderValue(row, 'Archived Date'));
     const dueDate = toIsoDate(getHeaderValue(row, 'Due Date'));
     const scoreLink = toOptionalString(getHeaderValue(row, 'Score Link'));
     const cost = toOptionalNumber(getHeaderValue(row, 'Cost'));
@@ -205,6 +209,7 @@ export function importRequestsFromXlsx(
       songTitle,
       artist,
       dateRequested,
+      archivedDate: delivered && reimbursed ? archivedDate ?? today : archivedDate,
       dueDate,
       scoreLink,
       cost,
@@ -252,8 +257,11 @@ export function importRequestsFromJson(
     return { requests: existingRequests, summary: { added: 0, skippedDuplicates: 0, skippedInvalid: 0 } };
   }
 
-  const items: unknown[] = Array.isArray(parsed) ? parsed : (parsed as any)?.requests;
-  if (!Array.isArray(items)) return { requests: existingRequests, summary: { added: 0, skippedDuplicates: 0, skippedInvalid: 0 } };
+  const parsedRequests = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>).requests : undefined;
+  const items: unknown[] = Array.isArray(parsed) ? parsed : Array.isArray(parsedRequests) ? parsedRequests : [];
+  if (!Array.isArray(parsed) && !Array.isArray(parsedRequests)) {
+    return { requests: existingRequests, summary: { added: 0, skippedDuplicates: 0, skippedInvalid: 0 } };
+  }
 
   for (const item of items) {
     if (typeof item !== 'object' || item === null) {
@@ -282,6 +290,9 @@ export function importRequestsFromJson(
 
     const dateRequested =
       (toIsoDate(row.dateRequested) ?? toIsoDate(getHeaderValue(row, 'Date Requested')) ?? today) as ISODate;
+    const archivedDate = (toIsoDate(row.archivedDate) ?? toIsoDate(getHeaderValue(row, 'Archived Date'))) as
+      | ISODate
+      | undefined;
     const dueDate = (toIsoDate(row.dueDate) ?? toIsoDate(getHeaderValue(row, 'Due Date'))) as ISODate | undefined;
     const scoreLink = toOptionalString(row.scoreLink) ?? toOptionalString(getHeaderValue(row, 'Score Link'));
     const cost = toOptionalNumber(row.cost) ?? toOptionalNumber(getHeaderValue(row, 'Cost'));
@@ -295,6 +306,7 @@ export function importRequestsFromJson(
       songTitle,
       artist,
       dateRequested,
+      archivedDate: delivered && reimbursed ? archivedDate ?? today : archivedDate,
       dueDate,
       scoreLink,
       cost,

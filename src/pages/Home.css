@@ -108,6 +108,15 @@ body.dark .appToolbar {
   margin: 10px 0 14px;
 }
 
+.archivedToggleRow {
+  margin: -6px 0 14px;
+}
+
+.archivedToggleRow ion-button {
+  --border-radius: 14px;
+  text-transform: none;
+}
+
 .filterItem {
   --background: var(--app-surface);
   border: 1px solid var(--app-border);
