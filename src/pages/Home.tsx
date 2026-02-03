@@ -44,6 +44,7 @@ import {
   importRequestsFromJson,
   importRequestsFromXlsx,
 } from '../lib/importExport';
+import { generateId } from '../lib/id';
 import { loadRequests, saveRequests } from '../lib/requestsStorage';
 import type { ISODate, MusicRequest } from '../models/Request';
 import './Home.css';
@@ -380,7 +381,7 @@ const Home: React.FC = () => {
       }
 
       const next: MusicRequest = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         ...draft,
         delivered: false,
         reimbursed: false,

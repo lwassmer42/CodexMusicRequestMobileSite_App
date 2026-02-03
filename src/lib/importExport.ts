@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { generateId } from './id';
 import type { ISODate, MusicRequest } from '../models/Request';
 
 export const EXCEL_HEADERS = [
@@ -204,7 +205,7 @@ export function importRequestsFromXlsx(
     const notes = toOptionalString(getHeaderValue(row, 'Notes'));
 
     imported.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       studentName,
       songTitle,
       artist,
@@ -301,7 +302,7 @@ export function importRequestsFromJson(
     const notes = toOptionalString(row.notes) ?? toOptionalString(getHeaderValue(row, 'Notes'));
 
     imported.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       studentName,
       songTitle,
       artist,
