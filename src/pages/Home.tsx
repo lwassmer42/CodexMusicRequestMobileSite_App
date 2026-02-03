@@ -49,10 +49,6 @@ import { loadRequests, saveRequests } from '../lib/requestsStorage';
 import type { ISODate, MusicRequest } from '../models/Request';
 import './Home.css';
 
-function toMonthKey(isoDate: string) {
-  return isoDate.slice(0, 7);
-}
-
 function nowIsoString() {
   return new Date().toISOString();
 }
@@ -61,16 +57,12 @@ function todayIsoDate(): ISODate {
   return new Date().toISOString().slice(0, 10) as ISODate;
 }
 
-function formatMonthLabel(monthKey: string) {
-  const [y, m] = monthKey.split('-');
-  if (!y || !m) return monthKey;
-  const yearNum = Number(y);
-  const monthNum = Number(m);
-  if (!Number.isFinite(yearNum) || !Number.isFinite(monthNum)) return monthKey;
-  const dt = new Date(Date.UTC(yearNum, monthNum - 1, 1));
-  if (Number.isNaN(dt.getTime())) return monthKey;
-  const month = new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC' }).format(dt);
-  return `${month} ${y}`;
+function formatMonthName(monthValue: string) {
+  const monthNum = Number(monthValue);
+  if (!Number.isFinite(monthNum)) return monthValue;
+  const dt = new Date(Date.UTC(2020, monthNum - 1, 1));
+  if (Number.isNaN(dt.getTime())) return monthValue;
+  return new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC' }).format(dt);
 }
 
 function normalizeDupeKey(text: string) {
@@ -88,9 +80,11 @@ const Home: React.FC = () => {
   const isDesktop = useMediaQuery('(min-width: 960px)');
 
   const today = todayIsoDate();
-  const defaultFilter = `month:${toMonthKey(today)}`;
+  const currentYear = today.slice(0, 4);
+  const currentMonth = today.slice(5, 7);
 
-  const [filterValue, setFilterValue] = useState<string>(defaultFilter);
+  const [filterYear, setFilterYear] = useState<string>(currentYear);
+  const [filterMonth, setFilterMonth] = useState<string>(currentMonth);
   const [showArchived, setShowArchived] = useState(false);
   const [activeView, setActiveView] = useState<'pending' | 'delivered' | 'archived'>('pending');
 
@@ -140,13 +134,10 @@ const Home: React.FC = () => {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
 
   const filteredRequests = useMemo(() => {
-    if (filterValue === 'all') return requests;
-
-    const [kind, value] = filterValue.split(':');
-    if (kind === 'year' && value) return requests.filter((r) => r.dateRequested.startsWith(value));
-    if (kind === 'month' && value) return requests.filter((r) => r.dateRequested.startsWith(value));
-    return requests;
-  }, [requests, filterValue]);
+    if (filterYear === 'all') return requests;
+    if (filterMonth === 'all') return requests.filter((r) => r.dateRequested.startsWith(filterYear));
+    return requests.filter((r) => r.dateRequested.startsWith(`${filterYear}-${filterMonth}`));
+  }, [requests, filterYear, filterMonth]);
 
   const pending = useMemo(
     () =>
@@ -192,19 +183,20 @@ const Home: React.FC = () => {
     [filteredRequests],
   );
 
-  const filterOptions = useMemo(() => {
-    const monthKeys = Array.from(new Set(requests.map((r) => toMonthKey(r.dateRequested)))).sort().reverse();
-    const currentYear = today.slice(0, 4);
+  const yearOptions = useMemo(() => {
+    const years = Array.from(new Set(requests.map((r) => r.dateRequested.slice(0, 4))));
+    if (!years.includes(currentYear)) years.push(currentYear);
+    years.sort().reverse();
+    return [{ value: 'all', label: 'All time' }, ...years.map((y) => ({ value: y, label: y }))];
+  }, [requests, currentYear]);
 
+  const monthOptions = useMemo(() => {
+    const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
     return [
-      { value: defaultFilter, label: `This month (${formatMonthLabel(today.slice(0, 7))})` },
-      { value: `year:${currentYear}`, label: `This year (${currentYear})` },
-      { value: 'all', label: 'All time' },
-      ...monthKeys
-        .filter((m) => `month:${m}` !== defaultFilter)
-        .map((m) => ({ value: `month:${m}`, label: formatMonthLabel(m) })),
+      { value: 'all', label: 'All months' },
+      ...months.map((m) => ({ value: m, label: formatMonthName(m) })),
     ];
-  }, [requests, today, defaultFilter]);
+  }, []);
 
   const editingRequest = useMemo(
     () => (editingId ? requests.find((r) => r.id === editingId) : undefined),
@@ -493,17 +485,35 @@ const Home: React.FC = () => {
           <div className="controlsRow">
             <IonItem lines="none" className="filterItem">
               <IonLabel>Filter</IonLabel>
-              <IonSelect
-                value={filterValue}
-                interface="popover"
-                onIonChange={(e) => setFilterValue((e.detail.value as string) ?? defaultFilter)}
-              >
-                {filterOptions.map((opt) => (
-                  <IonSelectOption key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </IonSelectOption>
-                ))}
-              </IonSelect>
+              <div className="filterControls">
+                <IonSelect
+                  value={filterYear}
+                  interface="popover"
+                  onIonChange={(e) => {
+                    const next = String(e.detail.value);
+                    setFilterYear(next);
+                    if (next === 'all') setFilterMonth('all');
+                  }}
+                >
+                  {yearOptions.map((opt) => (
+                    <IonSelectOption key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+                <IonSelect
+                  value={filterMonth}
+                  interface="popover"
+                  disabled={filterYear === 'all'}
+                  onIonChange={(e) => setFilterMonth(String(e.detail.value))}
+                >
+                  {monthOptions.map((opt) => (
+                    <IonSelectOption key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </div>
             </IonItem>
           </div>
 
