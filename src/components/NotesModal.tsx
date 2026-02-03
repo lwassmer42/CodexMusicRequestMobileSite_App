@@ -1,14 +1,4 @@
-import {
-  IonButton,
-  IonButtons,
-  IonContent,
-  IonHeader,
-  IonIcon,
-  IonModal,
-  IonTextarea,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
+import { IonButton, IonContent, IonIcon, IonModal, IonTextarea } from '@ionic/react';
 import { closeOutline } from 'ionicons/icons';
 import { useEffect, useState } from 'react';
 
@@ -40,32 +30,30 @@ export function NotesModal({
 
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onCancel} className="notesModal">
-      <IonHeader className="appHeader notesModalHeader">
-        <IonToolbar className="appToolbar notesModalToolbar">
-          <IonTitle>Notes</IonTitle>
-          <IonButtons slot="end">
+      <IonContent className="notesModalContent">
+        <div className="notesModalCard">
+          <div className="notesModalTitleRow">
+            <span className="notesModalTitle">Notes</span>
             <IonButton fill="clear" className="notesCloseButton" onClick={onCancel} aria-label="Close notes">
               <IonIcon slot="icon-only" icon={closeOutline} />
             </IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="notesModalContent">
-        <div className="notesBox">
-          <IonTextarea
-            value={notes}
-            onIonInput={(e) => setNotes(e.detail.value ?? '')}
-            autoGrow
-            placeholder="Add a quick note…"
-          />
-        </div>
-        <div className="notesModalActions">
-          <IonButton color="medium" fill="solid" shape="round" onClick={onCancel}>
-            Cancel
-          </IonButton>
-          <IonButton color="primary" fill="solid" shape="round" onClick={handleSave}>
-            Save
-          </IonButton>
+          </div>
+          <div className="notesBox">
+            <IonTextarea
+              value={notes}
+              onIonInput={(e) => setNotes(e.detail.value ?? '')}
+              autoGrow
+              placeholder={`Add a quick note\u2026`}
+            />
+          </div>
+          <div className="notesModalActions">
+            <IonButton color="medium" fill="solid" shape="round" onClick={onCancel}>
+              Cancel
+            </IonButton>
+            <IonButton color="primary" fill="solid" shape="round" onClick={handleSave}>
+              Save
+            </IonButton>
+          </div>
         </div>
       </IonContent>
     </IonModal>

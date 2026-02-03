@@ -123,6 +123,16 @@ body.dark .appToolbar {
   border-radius: 16px;
 }
 
+.filterControls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.filterControls ion-select {
+  min-width: 140px;
+}
+
 .mobileToggleRow {
   margin: 8px 0 14px;
 }
@@ -260,16 +270,50 @@ body.dark .appToolbar {
 }
 
 .notesModalContent {
-  padding: 14px 12px 18px;
+  padding: 18px 12px 22px;
+  --padding-top: 18px;
+  --padding-bottom: 22px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+.notesModalContent::part(scroll) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+}
+
+.notesModalCard {
+  width: min(560px, 100%);
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 20px;
+  padding: 14px 14px 16px;
+  box-shadow: var(--app-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notesModalTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notesModalTitle {
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .notesBox {
-  background: var(--app-surface);
+  background: var(--app-surface-2);
   border: 1px solid var(--app-border);
   border-radius: 16px;
   padding: 10px 12px;
   box-shadow: var(--app-shadow);
-  width: min(560px, 100%);
+  width: 100%;
 }
 
 .notesCloseButton {
@@ -280,17 +324,9 @@ body.dark .appToolbar {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  margin-top: 12px;
 }
 
 @media (max-width: 540px) {
-  .notesModalContent {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 100%;
-  }
-
   .notesModalActions {
     width: 100%;
     justify-content: space-between;
