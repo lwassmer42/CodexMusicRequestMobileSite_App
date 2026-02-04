@@ -18,6 +18,8 @@ import {
   IonSegmentButton,
   IonSelect,
   IonSelectOption,
+  IonSpinner,
+  IonText,
   IonToast,
   IonTitle,
   IonToolbar,
@@ -28,9 +30,10 @@ import {
   cloudUploadOutline,
   documentTextOutline,
   ellipsisVerticalOutline,
+  logOutOutline,
   musicalNotesOutline,
 } from 'ionicons/icons';
-import { type ChangeEventHandler, useEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEventHandler, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RequestEditorModal, type RequestEditorDraft } from '../components/RequestEditorModal';
 import { RequestCard, type RequestCardActionHandlers } from '../components/RequestCard';
 import { NotesModal } from '../components/NotesModal';
@@ -45,7 +48,10 @@ import {
   importRequestsFromXlsx,
 } from '../lib/importExport';
 import { generateId } from '../lib/id';
-import { loadRequests, saveRequests } from '../lib/requestsStorage';
+import { AuthPage } from './Auth';
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
+import { supabase } from '../lib/supabaseClient';
+import { deleteRequest, fetchRequests, upsertRequest, upsertRequests } from '../lib/requestsRepository';
 import type { ISODate, MusicRequest } from '../models/Request';
 import './Home.css';
 
@@ -76,6 +82,33 @@ function requestDupeKey(request: Pick<MusicRequest, 'studentName' | 'songTitle' 
 }
 
 const Home: React.FC = () => {
+  const { isConfigured, isLoading, user } = useSupabaseAuth();
+
+  if (!isConfigured) return <AuthPage />;
+
+  if (isLoading) {
+    return (
+      <IonPage className="appPage">
+        <IonContent fullscreen className="appContent">
+          <div className="contentWrap" style={{ display: 'flex', justifyContent: 'center', paddingTop: 48 }}>
+            <div style={{ textAlign: 'center' }}>
+              <IonSpinner />
+              <div style={{ marginTop: 12 }}>
+                <IonText color="medium">Loading…</IonText>
+              </div>
+            </div>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
+
+  if (!user) return <AuthPage />;
+
+  return <AuthedHome userId={user.id} />;
+};
+
+const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
   const { isDark, toggle: toggleTheme } = useThemeMode();
   const isDesktop = useMediaQuery('(min-width: 960px)');
 
@@ -93,29 +126,32 @@ const Home: React.FC = () => {
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [notesId, setNotesId] = useState<string | null>(null);
 
-  const [requests, setRequests] = useState<MusicRequest[]>(() => loadRequests());
+  const [requests, setRequests] = useState<MusicRequest[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
 
   useEffect(() => {
-    setRequests((prev) => {
-      const now = nowIsoString();
-      const migratedArchivedDate = todayIsoDate();
+    let cancelled = false;
+    setIsLoadingRequests(true);
 
-      let changed = false;
-      const next = prev.map((r) => {
-        if (r.delivered && r.reimbursed && !r.archivedDate) {
-          changed = true;
-          return { ...r, archivedDate: migratedArchivedDate, updatedAt: now };
-        }
-        return r;
+    fetchRequests(userId)
+      .then((rows) => {
+        if (cancelled) return;
+        setRequests(rows);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setToast({ isOpen: true, message: 'Failed to load requests.', showUndo: false });
+        setRequests([]);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsLoadingRequests(false);
       });
 
-      return changed ? next : prev;
-    });
-  }, []);
-
-  useEffect(() => {
-    saveRequests(requests);
-  }, [requests]);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const undoRef = useRef<null | (() => void)>(null);
   const [toast, setToast] = useState<{ isOpen: boolean; message: string; showUndo: boolean }>({
@@ -124,11 +160,11 @@ const Home: React.FC = () => {
     showUndo: false,
   });
 
-  const showToast = (message: string) => setToast({ isOpen: true, message, showUndo: false });
-  const showUndoToast = (message: string, undo: () => void) => {
+  const showToast = useCallback((message: string) => setToast({ isOpen: true, message, showUndo: false }), []);
+  const showUndoToast = useCallback((message: string, undo: () => void) => {
     undoRef.current = undo;
     setToast({ isOpen: true, message, showUndo: true });
-  };
+  }, []);
 
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
@@ -208,9 +244,35 @@ const Home: React.FC = () => {
     [requests, notesId],
   );
 
+  const syncUpsert = useCallback(async (request: MusicRequest) => {
+    try {
+      await upsertRequest(userId, request);
+    } catch {
+      showToast('Sync failed. Please refresh and try again.');
+    }
+  }, [userId, showToast]);
+
+  const syncUpsertMany = useCallback(async (next: MusicRequest[]) => {
+    try {
+      await upsertRequests(userId, next);
+    } catch {
+      showToast('Sync failed. Please refresh and try again.');
+    }
+  }, [userId, showToast]);
+
+  const syncDelete = useCallback(async (id: string) => {
+    try {
+      await deleteRequest(userId, id);
+    } catch {
+      showToast('Delete failed. Please refresh and try again.');
+    }
+  }, [userId, showToast]);
+
   const handlers = useMemo<RequestCardActionHandlers>(
     () => ({
       onToggleDelivered: (id) => {
+        let nextRequest: MusicRequest | null = null;
+
         setRequests((prev) => {
           const target = prev.find((r) => r.id === id);
           if (!target) return prev;
@@ -219,52 +281,64 @@ const Home: React.FC = () => {
             return prev;
           }
 
+          const now = nowIsoString();
           const nextDelivered = !target.delivered;
           const nextIsArchived = nextDelivered && target.reimbursed;
           const leavingArchive = target.delivered && target.reimbursed && !nextIsArchived;
           const archivedDate = nextIsArchived ? todayIsoDate() : leavingArchive ? undefined : target.archivedDate;
-          showUndoToast(nextDelivered ? 'Marked delivered' : 'Marked pending', () =>
-            setRequests((cur) =>
-              cur.map((r) =>
-                r.id === id
-                  ? { ...r, delivered: target.delivered, archivedDate: target.archivedDate, updatedAt: nowIsoString() }
-                  : r,
-              ),
-            ),
-          );
+
+          nextRequest = { ...target, delivered: nextDelivered, archivedDate, updatedAt: now };
+
+          showUndoToast(nextDelivered ? 'Marked delivered' : 'Marked pending', () => {
+            const undoNow = nowIsoString();
+            const restored = { ...target, delivered: target.delivered, archivedDate: target.archivedDate, updatedAt: undoNow };
+            setRequests((cur) => cur.map((r) => (r.id === id ? restored : r)));
+            void syncUpsert(restored);
+          });
 
           return prev.map((r) =>
             r.id === id ? { ...r, delivered: nextDelivered, archivedDate, updatedAt: nowIsoString() } : r,
           );
         });
+
+        if (nextRequest) void syncUpsert(nextRequest);
       },
       onToggleReimbursed: (id) => {
+        let nextRequest: MusicRequest | null = null;
+
         setRequests((prev) => {
           const target = prev.find((r) => r.id === id);
           if (!target) return prev;
 
+          const now = nowIsoString();
           const nextReimbursed = !target.reimbursed;
           const forcePending = Boolean(target.onlyDeliverableIfReimbursed && target.delivered && !nextReimbursed);
           const nextDelivered = forcePending ? false : target.delivered;
           const nextIsArchived = nextDelivered && nextReimbursed;
           const leavingArchive = target.delivered && target.reimbursed && !nextIsArchived;
           const archivedDate = nextIsArchived ? todayIsoDate() : leavingArchive ? undefined : target.archivedDate;
+
+          nextRequest = {
+            ...target,
+            reimbursed: nextReimbursed,
+            delivered: nextDelivered,
+            archivedDate,
+            updatedAt: now,
+          };
           showUndoToast(
             forcePending ? 'Marked unreimbursed and pending' : nextReimbursed ? 'Marked reimbursed' : 'Marked unreimbursed',
-            () =>
-            setRequests((cur) =>
-              cur.map((r) =>
-                r.id === id
-                  ? {
-                      ...r,
-                      reimbursed: target.reimbursed,
-                      delivered: target.delivered,
-                      archivedDate: target.archivedDate,
-                      updatedAt: nowIsoString(),
-                    }
-                  : r,
-              ),
-            ),
+            () => {
+              const undoNow = nowIsoString();
+              const restored = {
+                ...target,
+                reimbursed: target.reimbursed,
+                delivered: target.delivered,
+                archivedDate: target.archivedDate,
+                updatedAt: undoNow,
+              };
+              setRequests((cur) => cur.map((r) => (r.id === id ? restored : r)));
+              void syncUpsert(restored);
+            },
           );
 
           return prev.map((r) =>
@@ -273,35 +347,47 @@ const Home: React.FC = () => {
               : r,
           );
         });
+
+        if (nextRequest) void syncUpsert(nextRequest);
       },
       onEdit: (id) => {
         setEditingId(id);
         setIsEditorOpen(true);
       },
       onDelete: (id) => {
+        let removed: MusicRequest | null = null;
+        let removedIndex = -1;
         setRequests((prev) => {
           const index = prev.findIndex((r) => r.id === id);
           if (index < 0) return prev;
-          const removed = prev[index];
-
-          showUndoToast('Request deleted', () =>
-            setRequests((cur) => {
-              if (cur.some((r) => r.id === removed.id)) return cur;
-              const copy = [...cur];
-              copy.splice(index, 0, removed);
-              return copy;
-            }),
-          );
+          removed = prev[index];
+          removedIndex = index;
 
           return prev.filter((r) => r.id !== id);
         });
+
+        void syncDelete(id);
+        const removedRequest = removed;
+        const removedAtIndex = removedIndex;
+        if (removedRequest && removedAtIndex >= 0) {
+          const restored = { ...(removedRequest as MusicRequest), updatedAt: nowIsoString() };
+          showUndoToast('Request deleted', () => {
+            setRequests((cur) => {
+              if (cur.some((r) => r.id === restored.id)) return cur;
+              const copy = [...cur];
+              copy.splice(removedAtIndex, 0, restored);
+              return copy;
+            });
+            void syncUpsert(restored);
+          });
+        }
       },
       onEditNotes: (id) => {
         setNotesId(id);
         setIsNotesOpen(true);
       },
     }),
-    [],
+    [showToast, showUndoToast, syncDelete, syncUpsert],
   );
 
   const openNewRequest = () => {
@@ -338,6 +424,16 @@ const Home: React.FC = () => {
     downloadBlob(`music-requests-${fileDate}.json`, blob);
   };
 
+  const onClickSignOut = async () => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch {
+      showToast('Sign out failed. Please try again.');
+    }
+  };
+
   const onClickImport = () => importFileInputRef.current?.click();
 
   const onImportFileSelected: ChangeEventHandler<HTMLInputElement> = async (e) => {
@@ -350,8 +446,9 @@ const Home: React.FC = () => {
         const text = await file.text();
         const { requests: next, summary } = importRequestsFromJson(text, requests);
         setRequests(next);
+        void syncUpsertMany(next);
         showToast(
-          `Imported ${summary.added} • Skipped ${summary.skippedDuplicates} dupes • Skipped ${summary.skippedInvalid} invalid`,
+          `Imported ${summary.added} \u2022 Skipped ${summary.skippedDuplicates} dupes \u2022 Skipped ${summary.skippedInvalid} invalid`,
         );
         return;
       }
@@ -359,8 +456,9 @@ const Home: React.FC = () => {
       const buffer = await file.arrayBuffer();
       const { requests: next, summary } = importRequestsFromXlsx(buffer, requests);
       setRequests(next);
+      void syncUpsertMany(next);
       showToast(
-        `Imported ${summary.added} • Skipped ${summary.skippedDuplicates} dupes • Skipped ${summary.skippedInvalid} invalid`,
+        `Imported ${summary.added} \u2022 Skipped ${summary.skippedDuplicates} dupes \u2022 Skipped ${summary.skippedInvalid} invalid`,
       );
     } catch {
       showToast('Import failed. Please try a valid .xlsx or .json file.');
@@ -368,6 +466,7 @@ const Home: React.FC = () => {
   };
 
   const onSaveDraft = (draft: RequestEditorDraft) => {
+    let toSync: MusicRequest | null = null;
     setRequests((prev) => {
       const now = nowIsoString();
 
@@ -379,7 +478,12 @@ const Home: React.FC = () => {
         }
 
         setIsEditorOpen(false);
-        return prev.map((r) => (r.id === editingId ? { ...r, ...draft, updatedAt: now } : r));
+        return prev.map((r) => {
+          if (r.id !== editingId) return r;
+          const next = { ...r, ...draft, updatedAt: now };
+          toSync = next;
+          return next;
+        });
       }
 
       const dupe = prev.some((r) => requestDupeKey(r) === requestDupeKey(draft));
@@ -397,9 +501,12 @@ const Home: React.FC = () => {
         createdAt: now,
         updatedAt: now,
       };
+      toSync = next;
       setIsEditorOpen(false);
       return [next, ...prev];
     });
+
+    if (toSync) void syncUpsert(toSync);
   };
 
   const renderEmptyState = (label: string, withButton = true, bodyText?: string) => (
@@ -433,13 +540,34 @@ const Home: React.FC = () => {
                   <IonIcon slot="start" icon={cloudUploadOutline} />
                   <span className="actionButtonLabel">Import</span>
                 </IonButton>
-                <IonButton color="success" shape="round" className="actionButton" onClick={onClickExportExcel}>
+                <IonButton
+                  color="success"
+                  shape="round"
+                  className="actionButton"
+                  onClick={onClickExportExcel}
+                  disabled={isLoadingRequests}
+                >
                   <span className="actionButtonLabel">Excel</span>
                 </IonButton>
-                <IonButton color="secondary" shape="round" className="actionButton" onClick={onClickExportJson}>
+                <IonButton
+                  color="secondary"
+                  shape="round"
+                  className="actionButton"
+                  onClick={onClickExportJson}
+                  disabled={isLoadingRequests}
+                >
                   <span className="actionButtonLabel">JSON</span>
                 </IonButton>
-                <IonButton color="primary" shape="round" className="actionButton" onClick={openNewRequest}>
+                <IonButton fill="clear" size="small" className="overflowButton" onClick={onClickSignOut}>
+                  <IonIcon slot="icon-only" icon={logOutOutline} />
+                </IonButton>
+                <IonButton
+                  color="primary"
+                  shape="round"
+                  className="actionButton"
+                  onClick={openNewRequest}
+                  disabled={isLoadingRequests}
+                >
                   <IonIcon slot="start" icon={addOutline} />
                   <span className="actionButtonLabel">New Request</span>
                 </IonButton>
@@ -470,7 +598,7 @@ const Home: React.FC = () => {
 
         {!isDesktop ? (
           <IonFab vertical="bottom" horizontal="end" slot="fixed">
-            <IonFabButton color="primary" onClick={openNewRequest} aria-label="New request">
+            <IonFabButton color="primary" onClick={openNewRequest} aria-label="New request" disabled={isLoadingRequests}>
               <IonIcon icon={addOutline} />
             </IonFabButton>
           </IonFab>
@@ -658,9 +786,15 @@ const Home: React.FC = () => {
         value={notesRequest?.notes}
         onSave={(nextNotes) => {
           if (!notesId) return;
+          let updated: MusicRequest | null = null;
           setRequests((prev) =>
-            prev.map((r) => (r.id === notesId ? { ...r, notes: nextNotes, updatedAt: nowIsoString() } : r)),
+            prev.map((r) => {
+              if (r.id !== notesId) return r;
+              updated = { ...r, notes: nextNotes, updatedAt: nowIsoString() };
+              return updated;
+            }),
           );
+          if (updated) void syncUpsert(updated);
           setIsNotesOpen(false);
         }}
         onCancel={() => setIsNotesOpen(false)}
@@ -683,6 +817,11 @@ const Home: React.FC = () => {
           {
             text: 'Export JSON',
             handler: () => onClickExportJson(),
+          },
+          {
+            text: 'Sign out',
+            icon: logOutOutline,
+            handler: () => onClickSignOut(),
           },
           { text: 'Cancel', role: 'cancel' },
         ]}
