@@ -2,6 +2,7 @@ import {
   IonButton,
   IonButtons,
   IonContent,
+  IonCheckbox,
   IonHeader,
   IonInput,
   IonItem,
@@ -17,7 +18,15 @@ import type { ISODate, MusicRequest } from '../models/Request';
 
 export type RequestEditorDraft = Pick<
   MusicRequest,
-  'studentName' | 'songTitle' | 'artist' | 'dateRequested' | 'dueDate' | 'scoreLink' | 'cost' | 'notes'
+  | 'studentName'
+  | 'songTitle'
+  | 'artist'
+  | 'dateRequested'
+  | 'dueDate'
+  | 'scoreLink'
+  | 'cost'
+  | 'onlyDeliverableIfReimbursed'
+  | 'notes'
 >;
 
 function todayIsoDate(): ISODate {
@@ -51,6 +60,7 @@ export function RequestEditorModal({
       dueDate: undefined,
       scoreLink: undefined,
       cost: undefined,
+      onlyDeliverableIfReimbursed: false,
       notes: undefined,
       ...initialDraft,
     }),
@@ -64,6 +74,9 @@ export function RequestEditorModal({
   const [dueDate, setDueDate] = useState<ISODate | undefined>(baseDraft.dueDate);
   const [scoreLink, setScoreLink] = useState<string | undefined>(baseDraft.scoreLink);
   const [cost, setCost] = useState<number | undefined>(baseDraft.cost);
+  const [onlyDeliverableIfReimbursed, setOnlyDeliverableIfReimbursed] = useState(
+    baseDraft.onlyDeliverableIfReimbursed ?? false,
+  );
   const [notes, setNotes] = useState<string | undefined>(baseDraft.notes);
 
   useEffect(() => {
@@ -75,6 +88,7 @@ export function RequestEditorModal({
     setDueDate(baseDraft.dueDate);
     setScoreLink(baseDraft.scoreLink);
     setCost(baseDraft.cost);
+    setOnlyDeliverableIfReimbursed(baseDraft.onlyDeliverableIfReimbursed ?? false);
     setNotes(baseDraft.notes);
   }, [isOpen, baseDraft]);
 
@@ -156,6 +170,15 @@ export function RequestEditorModal({
           </IonItem>
 
           <IonItem>
+            <IonLabel>Only Deliverable If Reimbursed</IonLabel>
+            <IonCheckbox
+              slot="end"
+              checked={onlyDeliverableIfReimbursed}
+              onIonChange={(e) => setOnlyDeliverableIfReimbursed(Boolean(e.detail.checked))}
+            />
+          </IonItem>
+
+          <IonItem>
             <IonLabel position="stacked">Date Requested</IonLabel>
             <IonInput
               value={dateRequested}
@@ -199,6 +222,7 @@ export function RequestEditorModal({
                 dueDate,
                 scoreLink: normalizeOptionalText(scoreLink),
                 cost: cost !== undefined && Number.isFinite(cost) ? cost : undefined,
+                onlyDeliverableIfReimbursed,
                 notes: normalizeOptionalText(notes),
               })
             }

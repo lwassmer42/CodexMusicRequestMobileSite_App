@@ -15,6 +15,7 @@ export interface MusicRequest {
 
   scoreLink?: string;
   cost?: number;
+  onlyDeliverableIfReimbursed?: boolean;
 
   delivered: boolean;
   reimbursed: boolean;

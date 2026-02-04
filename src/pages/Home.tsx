@@ -214,6 +214,10 @@ const Home: React.FC = () => {
         setRequests((prev) => {
           const target = prev.find((r) => r.id === id);
           if (!target) return prev;
+          if (target.onlyDeliverableIfReimbursed && !target.reimbursed && !target.delivered) {
+            showToast('Reimburse first before marking delivered.');
+            return prev;
+          }
 
           const nextDelivered = !target.delivered;
           const nextIsArchived = nextDelivered && target.reimbursed;
@@ -240,21 +244,33 @@ const Home: React.FC = () => {
           if (!target) return prev;
 
           const nextReimbursed = !target.reimbursed;
-          const nextIsArchived = target.delivered && nextReimbursed;
+          const forcePending = Boolean(target.onlyDeliverableIfReimbursed && target.delivered && !nextReimbursed);
+          const nextDelivered = forcePending ? false : target.delivered;
+          const nextIsArchived = nextDelivered && nextReimbursed;
           const leavingArchive = target.delivered && target.reimbursed && !nextIsArchived;
           const archivedDate = nextIsArchived ? todayIsoDate() : leavingArchive ? undefined : target.archivedDate;
-          showUndoToast(nextReimbursed ? 'Marked reimbursed' : 'Marked unreimbursed', () =>
+          showUndoToast(
+            forcePending ? 'Marked unreimbursed and pending' : nextReimbursed ? 'Marked reimbursed' : 'Marked unreimbursed',
+            () =>
             setRequests((cur) =>
               cur.map((r) =>
                 r.id === id
-                  ? { ...r, reimbursed: target.reimbursed, archivedDate: target.archivedDate, updatedAt: nowIsoString() }
+                  ? {
+                      ...r,
+                      reimbursed: target.reimbursed,
+                      delivered: target.delivered,
+                      archivedDate: target.archivedDate,
+                      updatedAt: nowIsoString(),
+                    }
                   : r,
               ),
             ),
           );
 
           return prev.map((r) =>
-            r.id === id ? { ...r, reimbursed: nextReimbursed, archivedDate, updatedAt: nowIsoString() } : r,
+            r.id === id
+              ? { ...r, reimbursed: nextReimbursed, delivered: nextDelivered, archivedDate, updatedAt: nowIsoString() }
+              : r,
           );
         });
       },
@@ -377,6 +393,7 @@ const Home: React.FC = () => {
         ...draft,
         delivered: false,
         reimbursed: false,
+        onlyDeliverableIfReimbursed: draft.onlyDeliverableIfReimbursed ?? false,
         createdAt: now,
         updatedAt: now,
       };
