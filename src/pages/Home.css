@@ -216,6 +216,44 @@ body.dark .appToolbar {
 .requestCardHeaderActions {
   display: flex;
   gap: 2px;
+  align-items: center;
+}
+
+.ruleBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--ion-color-secondary);
+  box-shadow: var(--app-shadow);
+  margin-right: 2px;
+  position: relative;
+}
+
+.ruleBadge ion-icon {
+  font-size: 16px;
+}
+
+.ruleBadge--ok {
+  color: var(--ion-color-secondary);
+}
+
+.ruleBadge--blocked {
+  color: var(--ion-color-secondary);
+}
+
+.ruleBadge--blocked::after {
+  content: '';
+  position: absolute;
+  width: 70%;
+  height: 2px;
+  background: var(--ion-color-danger);
+  border-radius: 999px;
+  transform: rotate(-25deg);
 }
 
 .requestCardBadges {

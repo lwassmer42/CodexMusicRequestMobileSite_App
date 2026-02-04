@@ -41,6 +41,9 @@ export function RequestCard({
   handlers: RequestCardActionHandlers;
 }) {
   const money = formatMoney(request.cost);
+  const deliverBlocked = Boolean(
+    request.onlyDeliverableIfReimbursed && !request.reimbursed && !request.delivered,
+  );
 
   return (
     <IonCard className={`requestCard ${request.delivered ? 'isDelivered' : 'isPending'}`}>
@@ -63,6 +66,15 @@ export function RequestCard({
           </div>
 
           <div className="requestCardHeaderActions">
+            {request.onlyDeliverableIfReimbursed ? (
+              <span
+                className={`ruleBadge ${request.reimbursed ? 'ruleBadge--ok' : 'ruleBadge--blocked'}`}
+                aria-label="Only deliverable if reimbursed"
+                title="Only deliverable if reimbursed"
+              >
+                <IonIcon icon={cashOutline} />
+              </span>
+            ) : null}
             <IonButton
               fill="clear"
               size="small"
@@ -118,7 +130,8 @@ export function RequestCard({
           <IonButton
             fill="solid"
             size="small"
-            color={request.delivered ? 'medium' : 'success'}
+            color={deliverBlocked ? 'medium' : request.delivered ? 'medium' : 'success'}
+            disabled={deliverBlocked}
             onClick={() => handlers.onToggleDelivered(request.id)}
           >
             {request.delivered ? 'Mark Pending' : 'Mark Delivered'}

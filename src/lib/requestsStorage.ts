@@ -29,6 +29,7 @@ function coerceRequest(raw: unknown): MusicRequest | undefined {
   const archivedDate = safeString(raw.archivedDate);
   const delivered = safeBoolean(raw.delivered);
   const reimbursed = safeBoolean(raw.reimbursed);
+  const onlyDeliverableIfReimbursed = safeBoolean(raw.onlyDeliverableIfReimbursed) ?? false;
   const createdAt = safeString(raw.createdAt);
   const updatedAt = safeString(raw.updatedAt);
 
@@ -56,6 +57,7 @@ function coerceRequest(raw: unknown): MusicRequest | undefined {
     archivedDate: archivedDate as ISODate | undefined,
     scoreLink: safeString(raw.scoreLink),
     cost: safeNumber(raw.cost),
+    onlyDeliverableIfReimbursed,
     delivered,
     reimbursed,
     notes: safeString(raw.notes),

@@ -12,6 +12,7 @@ export const EXCEL_HEADERS = [
   'Cost',
   'Delivered',
   'Reimbursed',
+  'Only Deliverable If Reimbursed',
   'Due Date',
   'Notes',
 ] as const;
@@ -128,6 +129,7 @@ export function exportRequestsToXlsx(requests: MusicRequest[]) {
     Cost: r.cost ?? '',
     Delivered: formatYesNo(r.delivered),
     Reimbursed: formatYesNo(r.reimbursed),
+    'Only Deliverable If Reimbursed': formatYesNo(Boolean(r.onlyDeliverableIfReimbursed)),
     'Due Date': r.dueDate ?? '',
     Notes: r.notes ?? '',
   }));
@@ -143,6 +145,7 @@ export function exportRequestsToXlsx(requests: MusicRequest[]) {
     { wch: 10 },
     { wch: 12 },
     { wch: 12 },
+    { wch: 20 },
     { wch: 16 },
     { wch: 40 },
   ];
@@ -202,6 +205,8 @@ export function importRequestsFromXlsx(
     const cost = toOptionalNumber(getHeaderValue(row, 'Cost'));
     const delivered = parseYesNo(getHeaderValue(row, 'Delivered')) ?? false;
     const reimbursed = parseYesNo(getHeaderValue(row, 'Reimbursed')) ?? false;
+    const onlyDeliverableIfReimbursed =
+      parseYesNo(getHeaderValue(row, 'Only Deliverable If Reimbursed')) ?? false;
     const notes = toOptionalString(getHeaderValue(row, 'Notes'));
 
     imported.push({
@@ -216,6 +221,7 @@ export function importRequestsFromXlsx(
       cost,
       delivered,
       reimbursed,
+      onlyDeliverableIfReimbursed,
       notes,
       createdAt: now,
       updatedAt: now,
@@ -299,6 +305,10 @@ export function importRequestsFromJson(
     const cost = toOptionalNumber(row.cost) ?? toOptionalNumber(getHeaderValue(row, 'Cost'));
     const delivered = parseYesNo(row.delivered) ?? parseYesNo(getHeaderValue(row, 'Delivered')) ?? false;
     const reimbursed = parseYesNo(row.reimbursed) ?? parseYesNo(getHeaderValue(row, 'Reimbursed')) ?? false;
+    const onlyDeliverableIfReimbursed =
+      parseYesNo(row.onlyDeliverableIfReimbursed) ??
+      parseYesNo(getHeaderValue(row, 'Only Deliverable If Reimbursed')) ??
+      false;
     const notes = toOptionalString(row.notes) ?? toOptionalString(getHeaderValue(row, 'Notes'));
 
     imported.push({
@@ -313,6 +323,7 @@ export function importRequestsFromJson(
       cost,
       delivered,
       reimbursed,
+      onlyDeliverableIfReimbursed,
       notes,
       createdAt: now,
       updatedAt: now,
