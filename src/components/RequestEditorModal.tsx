@@ -38,6 +38,14 @@ function normalizeOptionalText(value: string | null | undefined) {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function normalizeOptionalUrl(value: string | null | undefined) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return undefined;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+  return `https://${trimmed}`;
+}
+
 export function RequestEditorModal({
   isOpen,
   title,
@@ -220,7 +228,7 @@ export function RequestEditorModal({
                 artist: artist.trim(),
                 dateRequested,
                 dueDate,
-                scoreLink: normalizeOptionalText(scoreLink),
+                scoreLink: normalizeOptionalUrl(scoreLink),
                 cost: cost !== undefined && Number.isFinite(cost) ? cost : undefined,
                 onlyDeliverableIfReimbursed,
                 notes: normalizeOptionalText(notes),

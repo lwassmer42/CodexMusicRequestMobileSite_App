@@ -10,6 +10,8 @@ import {
   IonText,
 } from '@ionic/react';
 import {
+  arrowUndoOutline,
+  archiveOutline,
   cashOutline,
   chatbubbleEllipsesOutline,
   checkmarkCircleOutline,
@@ -23,6 +25,8 @@ import type { MusicRequest } from '../models/Request';
 export type RequestCardActionHandlers = {
   onToggleDelivered: (id: string) => void;
   onToggleReimbursed: (id: string) => void;
+  onArchive: (id: string) => void;
+  onUnarchive: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onEditNotes: (id: string) => void;
@@ -44,6 +48,8 @@ export function RequestCard({
   const deliverBlocked = Boolean(
     request.onlyDeliverableIfReimbursed && !request.reimbursed && !request.delivered,
   );
+  const canArchive = Boolean(request.delivered && request.reimbursed && !request.archivedDate);
+  const canUnarchive = Boolean(request.archivedDate);
 
   return (
     <IonCard className={`requestCard ${request.delivered ? 'isDelivered' : 'isPending'}`}>
@@ -58,9 +64,9 @@ export function RequestCard({
               Requested: {request.dateRequested}
               {request.dueDate ? <span className="muted"> {'\u2022'} </span> : null}
               {request.dueDate ? <>Due: {request.dueDate}</> : null}
-              {request.delivered && request.reimbursed ? <span className="muted"> {'\u2022'} </span> : null}
-              {request.delivered && request.reimbursed ? (
-                <>Archived: {request.archivedDate ?? request.dateRequested}</>
+              {request.archivedDate ? <span className="muted"> {'\u2022'} </span> : null}
+              {request.archivedDate ? (
+                <>Archived: {request.archivedDate}</>
               ) : null}
             </IonText>
           </div>
@@ -145,6 +151,29 @@ export function RequestCard({
           >
             {request.reimbursed ? 'Unreimburse' : 'Mark Reimbursed'}
           </IonButton>
+
+          {canArchive ? (
+            <IonButton
+              fill="solid"
+              size="small"
+              color="tertiary"
+              onClick={() => handlers.onArchive(request.id)}
+            >
+              <IonIcon slot="start" icon={archiveOutline} />
+              Archive
+            </IonButton>
+          ) : null}
+          {canUnarchive ? (
+            <IonButton
+              fill="solid"
+              size="small"
+              color="tertiary"
+              onClick={() => handlers.onUnarchive(request.id)}
+            >
+              <IonIcon slot="start" icon={arrowUndoOutline} />
+              Unarchive
+            </IonButton>
+          ) : null}
 
           <IonButton
             fill="clear"
