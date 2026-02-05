@@ -263,6 +263,14 @@ body.dark .appToolbar {
   margin-bottom: 10px;
 }
 
+.requestCardBadges ion-chip {
+  cursor: default;
+}
+
+.requestCardBadges ion-chip.chipLink {
+  cursor: pointer;
+}
+
 .chipLink a {
   color: inherit;
   text-decoration: none;

@@ -108,6 +108,8 @@ const Home: React.FC = () => {
   return <AuthedHome userId={user.id} />;
 };
 
+const UNDO_TOAST_DURATION_MS = 6000;
+
 const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
   const { isDark, toggle: toggleTheme } = useThemeMode();
   const isDesktop = useMediaQuery('(min-width: 960px)');
@@ -128,6 +130,8 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
 
   const [requests, setRequests] = useState<MusicRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+  const undoRef = useRef<null | (() => void)>(null);
+  const deleteTimersRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -153,7 +157,14 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
     };
   }, [userId]);
 
-  const undoRef = useRef<null | (() => void)>(null);
+  useEffect(() => {
+    const timers = deleteTimersRef.current;
+    return () => {
+      timers.forEach((timerId) => window.clearTimeout(timerId));
+      timers.clear();
+    };
+  }, []);
+
   const [toast, setToast] = useState<{ isOpen: boolean; message: string; showUndo: boolean }>({
     isOpen: false,
     message: '',
@@ -187,7 +198,7 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
   const delivered = useMemo(
     () =>
       filteredRequests
-        .filter((r) => r.delivered && !r.reimbursed)
+        .filter((r) => r.delivered && !r.archivedDate)
         .sort((a, b) => {
           const date = b.dateRequested.localeCompare(a.dateRequested);
           if (date !== 0) return date;
@@ -198,7 +209,7 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
   const archived = useMemo(
     () =>
       filteredRequests
-        .filter((r) => r.delivered && r.reimbursed)
+        .filter((r) => Boolean(r.archivedDate))
         .sort((a, b) => {
           const archivedDate = (b.archivedDate ?? b.dateRequested).localeCompare(a.archivedDate ?? a.dateRequested);
           if (archivedDate !== 0) return archivedDate;
@@ -268,6 +279,19 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
     }
   }, [userId, showToast]);
 
+  const scheduleDelete = useCallback(
+    (id: string) => {
+      const existing = deleteTimersRef.current.get(id);
+      if (existing) window.clearTimeout(existing);
+      const timerId = window.setTimeout(() => {
+        deleteTimersRef.current.delete(id);
+        void syncDelete(id);
+      }, UNDO_TOAST_DURATION_MS);
+      deleteTimersRef.current.set(id, timerId);
+    },
+    [syncDelete],
+  );
+
   const handlers = useMemo<RequestCardActionHandlers>(
     () => ({
       onToggleDelivered: (id) => {
@@ -283,9 +307,7 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
 
           const now = nowIsoString();
           const nextDelivered = !target.delivered;
-          const nextIsArchived = nextDelivered && target.reimbursed;
-          const leavingArchive = target.delivered && target.reimbursed && !nextIsArchived;
-          const archivedDate = nextIsArchived ? todayIsoDate() : leavingArchive ? undefined : target.archivedDate;
+          const archivedDate = target.archivedDate && !nextDelivered ? undefined : target.archivedDate;
 
           nextRequest = { ...target, delivered: nextDelivered, archivedDate, updatedAt: now };
 
@@ -314,9 +336,8 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
           const nextReimbursed = !target.reimbursed;
           const forcePending = Boolean(target.onlyDeliverableIfReimbursed && target.delivered && !nextReimbursed);
           const nextDelivered = forcePending ? false : target.delivered;
-          const nextIsArchived = nextDelivered && nextReimbursed;
-          const leavingArchive = target.delivered && target.reimbursed && !nextIsArchived;
-          const archivedDate = nextIsArchived ? todayIsoDate() : leavingArchive ? undefined : target.archivedDate;
+          const archivedDate =
+            target.archivedDate && (!nextReimbursed || !nextDelivered) ? undefined : target.archivedDate;
 
           nextRequest = {
             ...target,
@@ -350,6 +371,56 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
 
         if (nextRequest) void syncUpsert(nextRequest);
       },
+      onArchive: (id) => {
+        let nextRequest: MusicRequest | null = null;
+
+        setRequests((prev) => {
+          const target = prev.find((r) => r.id === id);
+          if (!target) return prev;
+          if (!target.delivered || !target.reimbursed || target.archivedDate) return prev;
+
+          const now = nowIsoString();
+          const archivedDate = todayIsoDate();
+
+          nextRequest = { ...target, archivedDate, updatedAt: now };
+
+          showUndoToast('Archived request', () => {
+            const undoNow = nowIsoString();
+            const restored = { ...target, archivedDate: target.archivedDate, updatedAt: undoNow };
+            setRequests((cur) => cur.map((r) => (r.id === id ? restored : r)));
+            void syncUpsert(restored);
+          });
+
+          return prev.map((r) => (r.id === id ? { ...r, archivedDate, updatedAt: now } : r));
+        });
+
+        if (nextRequest) void syncUpsert(nextRequest);
+      },
+      onUnarchive: (id) => {
+        let nextRequest: MusicRequest | null = null;
+
+        setRequests((prev) => {
+          const target = prev.find((r) => r.id === id);
+          if (!target) return prev;
+          if (!target.archivedDate) return prev;
+
+          const now = nowIsoString();
+          const archivedDate = undefined;
+
+          nextRequest = { ...target, archivedDate, updatedAt: now };
+
+          showUndoToast('Unarchived request', () => {
+            const undoNow = nowIsoString();
+            const restored = { ...target, archivedDate: target.archivedDate, updatedAt: undoNow };
+            setRequests((cur) => cur.map((r) => (r.id === id ? restored : r)));
+            void syncUpsert(restored);
+          });
+
+          return prev.map((r) => (r.id === id ? { ...r, archivedDate, updatedAt: now } : r));
+        });
+
+        if (nextRequest) void syncUpsert(nextRequest);
+      },
       onEdit: (id) => {
         setEditingId(id);
         setIsEditorOpen(true);
@@ -366,12 +437,17 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
           return prev.filter((r) => r.id !== id);
         });
 
-        void syncDelete(id);
+        scheduleDelete(id);
         const removedRequest = removed;
         const removedAtIndex = removedIndex;
         if (removedRequest && removedAtIndex >= 0) {
           const restored = { ...(removedRequest as MusicRequest), updatedAt: nowIsoString() };
           showUndoToast('Request deleted', () => {
+            const pending = deleteTimersRef.current.get(restored.id);
+            if (pending) {
+              window.clearTimeout(pending);
+              deleteTimersRef.current.delete(restored.id);
+            }
             setRequests((cur) => {
               if (cur.some((r) => r.id === restored.id)) return cur;
               const copy = [...cur];
@@ -387,7 +463,7 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
         setIsNotesOpen(true);
       },
     }),
-    [showToast, showUndoToast, syncDelete, syncUpsert],
+    [scheduleDelete, showToast, showUndoToast, syncUpsert],
   );
 
   const openNewRequest = () => {
@@ -397,8 +473,8 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
 
   const exportSortedRequests = useMemo(() => {
     return [...requests].sort((a, b) => {
-      const aRank = a.delivered && a.reimbursed ? 2 : a.delivered ? 1 : 0;
-      const bRank = b.delivered && b.reimbursed ? 2 : b.delivered ? 1 : 0;
+      const aRank = a.archivedDate ? 2 : a.delivered ? 1 : 0;
+      const bRank = b.archivedDate ? 2 : b.delivered ? 1 : 0;
       if (aRank !== bRank) return aRank - bRank;
 
       if (aRank === 2) {
@@ -750,7 +826,7 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
                     </h2>
                     <div className="listStack">
                       {archived.length === 0
-                        ? renderEmptyState('archived', false, 'Archived requests (delivered + reimbursed) show up here.')
+                        ? renderEmptyState('archived', false, 'Archived requests show up here.')
                         : archived.map((r) => <RequestCard key={r.id} request={r} handlers={handlers} />)}
                     </div>
                   </IonCol>
@@ -763,7 +839,7 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
                 ? renderEmptyState(
                     activeView,
                     activeView !== 'archived',
-                    activeView === 'archived' ? 'Archived requests (delivered + reimbursed) show up here.' : undefined,
+                    activeView === 'archived' ? 'Archived requests show up here.' : undefined,
                   )
                 : (activeView === 'pending' ? pending : activeView === 'delivered' ? delivered : archived).map((r) => (
                     <RequestCard key={r.id} request={r} handlers={handlers} />
@@ -830,7 +906,7 @@ const AuthedHome: React.FC<{ userId: string }> = ({ userId }) => {
       <IonToast
         isOpen={toast.isOpen}
         message={toast.message}
-        duration={toast.showUndo ? 6000 : 2500}
+        duration={toast.showUndo ? UNDO_TOAST_DURATION_MS : 2500}
         position="bottom"
         buttons={
           toast.showUndo
