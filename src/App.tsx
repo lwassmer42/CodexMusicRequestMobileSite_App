@@ -2,6 +2,7 @@ import { Redirect, Route } from 'react-router-dom';
 import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
 import { IonReactHashRouter } from '@ionic/react-router';
 import Home from './pages/Home';
+import { AuthCallbackPage } from './pages/AuthCallback';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -43,7 +44,11 @@ const App: React.FC = () => (
           <Home />
         </Route>
         <Route exact path="/">
-          <Redirect to="/home" />
+          {window.location.search.includes('code=') || window.location.search.includes('error=') ? (
+            <AuthCallbackPage />
+          ) : (
+            <Redirect to="/home" />
+          )}
         </Route>
       </IonRouterOutlet>
     </IonReactHashRouter>
